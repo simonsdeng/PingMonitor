@@ -1,29 +1,36 @@
 package me.simondeng.ping.service;
 
+import javafx.scene.control.TreeItem;
+
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class PingService {
-	public static final String ADDR = "8.8.8.8";
+	public static String ADDR = "8.8.8.8";
+	public static String TIME = "time";
 	private static final boolean IS_WINDOWS = System.getProperty("os.name").startsWith("Windows");
 	private static final boolean IS_ANDROID = System.getProperty("java.vendor.url").equals("http://www.android.com/");
+
 
 	private List<PingListener> listeners;
 	private ProcessBuilder procBuilder;
 	private volatile Process proc;
 
-	public PingService() {
+	public PingService(String address) {
+		if (address != null) {
+			ADDR = address;
+		}
 		listeners = new ArrayList<>();
 		procBuilder = getProcessBuilder();
 	}
 
-	public PingService(PingListener listener) {
-		this();
+	public PingService(PingListener listener, String address) {
+		this(address);
 		addListener(listener);
 	}
 
@@ -51,7 +58,13 @@ public class PingService {
 	}
 
 	public void start() throws IOException {
+
 		if (proc != null) throw new IllegalStateException();
+
+		if (Locale.getDefault().equals(new Locale("pt", "BR"))) {
+			TIME = "tempo";
+		}
+
 		proc = procBuilder.start();
 
 		new Thread(() -> {
@@ -59,19 +72,20 @@ public class PingService {
 			scanner.nextLine();
 			if (IS_WINDOWS) scanner.nextLine();
 
-			final Pattern pattern = Pattern.compile("time=(\\d+(\\.\\d+)?) ?ms");
+			final Pattern pattern = Pattern.compile(TIME + "=(\\d+(\\.\\d+)?) ?ms");
 			while (scanner.hasNextLine()) {
 				final String line = scanner.nextLine();
+				System.out.println(line);
 				final Matcher matcher = pattern.matcher(line);
 
 				if (matcher.find()) {
 					final int ping = (int) Math.round(Double.parseDouble(matcher.group(1)));
 					for (PingListener listener : listeners) {
-						listener.pingSuccess(ping);
+						listener.pingSuccess(line, ping);
 					}
 				} else {
 					for (PingListener listener : listeners) {
-						listener.pingFailure(line);
+						listener.pingFailure(ADDR, line);
 					}
 				}
 			}

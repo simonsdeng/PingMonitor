@@ -1,38 +1,40 @@
 package me.simondeng.ping;
 
-import java.awt.AWTException;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Image;
-import java.awt.MenuItem;
-import java.awt.PopupMenu;
-import java.awt.SystemTray;
-import java.awt.TrayIcon;
-import java.awt.event.ActionEvent;
+import me.simondeng.ping.service.PingListener;
+import me.simondeng.ping.service.PingService;
+
+import java.awt.*;
+import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-
-import me.simondeng.ping.service.PingService;
-import me.simondeng.ping.service.PingListener;
+import java.util.Locale;
 
 public class PingMonitor implements PingListener {
 	private static final BufferedImage GREEN_ICON;
 	private static final BufferedImage YELLOW_ICON;
 	private static final BufferedImage RED_ICON;
+
 	static {
-		GREEN_ICON = new BufferedImage(16, 16, 6);
-		YELLOW_ICON = new BufferedImage(16, 16, 6);
-		RED_ICON = new BufferedImage(16, 16, 6);
+		GREEN_ICON = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		YELLOW_ICON = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		RED_ICON = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
 
 		final Graphics green = GREEN_ICON.getGraphics();
+		green.setClip(new Ellipse2D.Float(0, 0, 16, 16));
+		green.drawImage(GREEN_ICON, 0, 0, 16, 16, null);
 		green.setColor(Color.GREEN);
 		green.fillRect(0, 0, 16, 16);
 
+
 		final Graphics yellow = YELLOW_ICON.getGraphics();
+		yellow.setClip(new Ellipse2D.Float(0, 0, 16, 16));
+		yellow.drawImage(GREEN_ICON, 0, 0, 16, 16, null);
 		yellow.setColor(Color.YELLOW);
 		yellow.fillRect(0, 0, 16, 16);
 
 		final Graphics red = RED_ICON.getGraphics();
+		red.setClip(new Ellipse2D.Float(0, 0, 16, 16));
+		red.drawImage(GREEN_ICON, 0, 0, 16, 16, null);
 		red.setColor(Color.RED);
 		red.fillRect(0, 0, 16, 16);
 	}
@@ -40,13 +42,13 @@ public class PingMonitor implements PingListener {
 	private PingService service;
 	private TrayIcon trayIcon;
 
-	public PingMonitor() {
-		service = new PingService(this);
+	public PingMonitor(String address) {
+		service = new PingService(this, address);
 		trayIcon = createTrayIcon();
 	}
 
 	public static void main(String[] array) throws IOException, AWTException {
-		new PingMonitor().run();
+		new PingMonitor(array.length > 0 ? array[0] : null).run();
 	}
 
 	public void run() throws IOException, AWTException {
@@ -57,7 +59,7 @@ public class PingMonitor implements PingListener {
 	private TrayIcon createTrayIcon() {
 		final TrayIcon trayIcon = new TrayIcon(RED_ICON);
 		final PopupMenu popupMenu = new PopupMenu();
-		final MenuItem menuItem = new MenuItem("Exit");
+		final MenuItem menuItem = new MenuItem("Sair");
 		menuItem.addActionListener(e -> onExit());
 		popupMenu.add(menuItem);
 		trayIcon.setPopupMenu(popupMenu);
@@ -65,19 +67,27 @@ public class PingMonitor implements PingListener {
 	}
 
 	@Override
-	public void pingSuccess(int ping) {
+	public void pingSuccess(String line, int ping) {
 		if (ping < 500) {
 			trayIcon.setImage(GREEN_ICON);
 		} else {
 			trayIcon.setImage(YELLOW_ICON);
 		}
-		trayIcon.setToolTip(ping + "ms");
+		trayIcon.setToolTip(line);
 	}
 
+	private Integer numberOfFailure = 0;
+
 	@Override
-	public void pingFailure(String message) {
+	public void pingFailure(String addr, String message) {
 		trayIcon.setImage(RED_ICON);
 		trayIcon.setToolTip(message);
+		numberOfFailure++;
+		if (numberOfFailure > 3) {
+			trayIcon.displayMessage(addr, message, TrayIcon.MessageType.WARNING);
+			numberOfFailure = 0;
+		}
+
 	}
 
 	public void onExit() {
