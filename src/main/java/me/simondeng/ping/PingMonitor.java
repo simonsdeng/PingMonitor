@@ -57,9 +57,13 @@ public class PingMonitor implements PingListener {
 	}
 
 	private TrayIcon createTrayIcon() {
+		String exit = "exit";
+		if (Locale.getDefault().equals(new Locale("pt", "BR"))) {
+			exit = "Sair";
+		}
 		final TrayIcon trayIcon = new TrayIcon(RED_ICON);
 		final PopupMenu popupMenu = new PopupMenu();
-		final MenuItem menuItem = new MenuItem("Sair");
+		final MenuItem menuItem = new MenuItem(exit);
 		menuItem.addActionListener(e -> onExit());
 		popupMenu.add(menuItem);
 		trayIcon.setPopupMenu(popupMenu);
