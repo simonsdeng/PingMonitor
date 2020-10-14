@@ -6,6 +6,7 @@ import me.simondeng.ping.service.PingService;
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.Locale;
 
@@ -87,7 +88,7 @@ public class PingMonitor implements PingListener {
 		trayIcon.setImage(RED_ICON);
 		trayIcon.setToolTip(message);
 		numberOfFailure++;
-		if (numberOfFailure > 3) {
+		if (numberOfFailure > 5 && new File("displayMessage.on").exists()) {
 			trayIcon.displayMessage(addr, message, TrayIcon.MessageType.WARNING);
 			numberOfFailure = 0;
 		}
